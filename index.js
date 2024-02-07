@@ -30,10 +30,20 @@ db.connect((err) => {
 // GET Endpoint: Retrieve Tasks
 app.get("/tasks", (req, res) => {
   let sql = "SELECT * FROM tasks";
-  db.query(sql, (err, results) => {
-    if (err) throw err;
-    res.json(results);
-  });
+  const { status } = req.query;
+
+  if (status) {
+    sql += " WHERE status = ?";
+    db.query(sql, [status], (err, results) => {
+      if (err) throw err;
+      res.json(results);
+    });
+  } else {
+    db.query(sql, (err, results) => {
+      if (err) throw err;
+      res.json(results);
+    });
+  }
 });
 
 // POST Endpoint: Add a New Task
@@ -51,17 +61,37 @@ app.post("/tasks", (req, res) => {
 });
 
 // PUT Endpoint: Update an Existing Task
-app.put("/tasks/:id", (req, res) => {
-  let sql =
-    "UPDATE tasks SET name = ?, description = ?, status = ? WHERE id = ?";
-  db.query(
-    sql,
-    [req.body.name, req.body.description, req.body.status, req.params.id],
-    (err, result) => {
-      if (err) throw err;
-      res.send("Task updated successfully.");
+app.put("/tasks/update/:id", (req, res) => {
+  const { name, description } = req.body;
+  if (!name || !description) {
+    return res.status(400).send("Name and description cannot be null.");
+  }
+
+  const sql = "UPDATE tasks SET name = ?, description = ? WHERE id = ?";
+  db.query(sql, [name, description, req.params.id], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send("Error updating task.");
     }
-  );
+    res.send("Task updated successfully.");
+  });
+});
+
+//update status
+app.put("/tasks/status/:id", (req, res) => {
+  const { status } = req.body;
+  if (!status) {
+    return res.status(400).send("Status cannot be null.");
+  }
+
+  const sql = "UPDATE tasks SET status = ? WHERE id = ?";
+  db.query(sql, [status, req.params.id], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send("Error updating task status.");
+    }
+    res.send("Task status updated successfully.");
+  });
 });
 
 // DELETE Endpoint: Delete a Task
